@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toros Negros - Organizador de Anime</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Toros Negros">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <header class="bg-black text-white p-4 shadow-lg flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <img src="icon.png" alt="Toros Negros" class="h-12 w-12 rounded-full border-2 border-yellow-500 bg-white object-contain">
+            <h1 class="text-2xl font-bold font-serif tracking-widest text-yellow-500">Mi Lista Anime</h1>
+        </div>
+        <div class="flex items-center space-x-2">
+            <div id="sync-indicator" class="hidden sm:flex items-center text-xs font-semibold px-2.5 py-1.5 rounded-full bg-green-950/80 border border-green-500/40 text-green-400">
+                <i id="sync-icon" class="fas fa-check-circle mr-1.5"></i>
+                <span id="sync-text">Sincronizado</span>
+            </div>
+            <button id="mobile-api-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 sm:px-4 rounded-lg flex items-center space-x-2 text-sm shadow transition">
+                <i class="fas fa-mobile-alt text-yellow-400"></i>
+                <span class="hidden sm:inline">📱 Celular / API</span>
+            </button>
+            <button id="share-btn" class="bg-yellow-600 hover:bg-yellow-700 text-black font-bold py-2 px-4 rounded-lg flex items-center space-x-2 text-sm shadow transition">
+                <i class="fas fa-share-alt"></i>
+                <span class="hidden sm:inline">Compartir Lista</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 max-w-5xl">
+        <!-- Buscador -->
+        <section class="mb-10 bg-gray-800 p-6 rounded-xl shadow-md border border-gray-700">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                <h2 class="text-xl font-bold flex items-center"><i class="fas fa-search mr-2 text-yellow-500"></i> Agregar un Anime</h2>
+                <button id="open-manual-btn" class="bg-yellow-600 hover:bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold text-sm flex items-center transition shadow">
+                    <i class="fas fa-plus-circle mr-2"></i> Agregar Manualmente
+                </button>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="search-input" placeholder="Ej. Black Clover, Naruto, Frieren..." class="flex-1 bg-gray-700 text-white border border-gray-600 p-3 rounded-lg focus:outline-none focus:border-yellow-500">
+                <button id="search-btn" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-bold transition">Buscar</button>
+            </div>
+            <div id="search-results" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 hidden"></div>
+        </section>
+
+        <!-- Lista Guardada -->
+        <section id="my-list-section">
+            <div class="flex justify-between items-end mb-6 border-b border-gray-700 pb-2">
+                <h2 class="text-3xl font-bold text-yellow-500">Animes Vistos</h2>
+                <span class="text-gray-400" id="total-count">0 animes</span>
+            </div>
+            <div id="animes-container" class="space-y-8"></div>
+        </section>
+    </main>
+
+    <!-- Modal -->
+    <div id="review-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-gray-800 p-6 rounded-xl max-w-md w-full shadow-2xl border border-yellow-600">
+            <h3 class="text-2xl font-bold mb-4" id="modal-anime-title">Calificar Anime</h3>
+            <div class="mb-4">
+                <label class="block text-gray-400 mb-2">Tu Calificación</label>
+                <div class="flex space-x-2 text-3xl text-gray-500" id="star-rating">
+                    <i class="fas fa-star cursor-pointer hover:text-yellow-400" data-value="1"></i>
+                    <i class="fas fa-star cursor-pointer hover:text-yellow-400" data-value="2"></i>
+                    <i class="fas fa-star cursor-pointer hover:text-yellow-400" data-value="3"></i>
+                    <i class="fas fa-star cursor-pointer hover:text-yellow-400" data-value="4"></i>
+                    <i class="fas fa-star cursor-pointer hover:text-yellow-400" data-value="5"></i>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-400 mb-2">Mini Reseña (Opcional)</label>
+                <textarea id="modal-review" class="w-full bg-gray-700 text-white border border-gray-600 p-3 rounded-lg focus:outline-none focus:border-yellow-500 h-24" placeholder="¿Qué te pareció este anime?"></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="close-modal" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancelar</button>
+                <button id="save-anime" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-black font-bold rounded-lg">Guardar en Lista</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar Manualmente -->
+    <div id="manual-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-gray-800 p-6 rounded-xl max-w-lg w-full shadow-2xl border border-yellow-600 overflow-y-auto max-h-[90vh]">
+            <h3 class="text-2xl font-bold mb-4 text-yellow-400 flex items-center"><i class="fas fa-plus-circle mr-2"></i> Agregar Anime Manualmente</h3>
+            
+            <div class="mb-3">
+                <label class="block text-gray-300 text-sm font-bold mb-1">Título del Anime *</label>
+                <input type="text" id="manual-title" placeholder="Ej. Saint Seiya Omega" class="w-full bg-gray-700 text-white border border-gray-600 p-2.5 rounded-lg focus:outline-none focus:border-yellow-500 text-sm">
+            </div>
+
+            <div class="mb-3">
+                <label class="block text-gray-300 text-sm font-bold mb-1">Categorías / Géneros * (uno o varios)</label>
+                <input type="text" id="manual-genre" placeholder="Ej. Action, Fantasy, Shonen" class="w-full bg-gray-700 text-white border border-gray-600 p-2.5 rounded-lg focus:outline-none focus:border-yellow-500 text-sm mb-1.5">
+                <p class="text-[11px] text-gray-400 mb-1">Toca para agregar/quitar géneros rápidamente:</p>
+                <div id="manual-genre-quick-tags" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
+            <div class="mb-3">
+                <label class="block text-gray-300 text-sm font-bold mb-1">Imagen de Portada *</label>
+                <div class="space-y-2">
+                    <input type="file" id="manual-image-file" accept="image/*" class="w-full bg-gray-700 text-gray-300 border border-gray-600 p-2 rounded-lg text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-yellow-600 file:text-black hover:file:bg-yellow-500 cursor-pointer">
+                    <p class="text-xs text-gray-400">O escribe el nombre de archivo (si está en la carpeta) o URL de internet:</p>
+                    <input type="text" id="manual-image-url" placeholder="Ej. MiAnime.jpg o https://..." class="w-full bg-gray-700 text-white border border-gray-600 p-2 rounded-lg text-sm focus:outline-none focus:border-yellow-500">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="block text-gray-300 text-sm font-bold mb-1">Tu Calificación</label>
+                <div class="flex space-x-2 text-2xl text-gray-500 cursor-pointer" id="manual-stars">
+                    <i class="fas fa-star" data-val="1"></i>
+                    <i class="fas fa-star" data-val="2"></i>
+                    <i class="fas fa-star" data-val="3"></i>
+                    <i class="fas fa-star" data-val="4"></i>
+                    <i class="fas fa-star" data-val="5"></i>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="block text-gray-300 text-sm font-bold mb-1">Sinopsis</label>
+                <textarea id="manual-synopsis" class="w-full bg-gray-700 text-white border border-gray-600 p-2.5 rounded-lg focus:outline-none focus:border-yellow-500 h-20 text-sm" placeholder="De qué trata el anime..."></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="block text-gray-300 text-sm font-bold mb-1">Tu Reseña</label>
+                <textarea id="manual-review" class="w-full bg-gray-700 text-white border border-gray-600 p-2.5 rounded-lg focus:outline-none focus:border-yellow-500 h-16 text-sm" placeholder="Qué te pareció..."></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-1">Lo que dice el foro (Opcional)</label>
+                <input type="text" id="manual-forum" placeholder="Opinión o consenso de la comunidad..." class="w-full bg-gray-700 text-white border border-gray-600 p-2.5 rounded-lg text-sm focus:outline-none focus:border-yellow-500">
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button id="close-manual" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm font-bold">Cancelar</button>
+                <button id="save-manual" class="px-5 py-2 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-lg text-sm flex items-center shadow"><i class="fas fa-save mr-1.5"></i> Guardar en mi Lista</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de DETALLE (al hacer clic en una tarjeta) -->
+    <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-85 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl border border-gray-700 overflow-hidden">
+            <!-- Imagen de portada grande -->
+            <div class="relative h-64">
+                <img id="detail-image" src="" alt="" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
+                <button id="close-detail" class="absolute top-3 right-3 bg-black bg-opacity-60 text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-opacity-90 text-xl">&times;</button>
+                <div class="absolute bottom-3 left-4">
+                    <div id="detail-genre-badges" class="flex flex-wrap gap-1"></div>
+                </div>
+            </div>
+            <!-- Info -->
+            <div class="p-5 overflow-y-auto max-h-96">
+                <h2 id="detail-title" class="text-2xl font-bold text-yellow-400 mb-2"></h2>
+
+                <!-- Géneros EDITABLES -->
+                <div class="mb-3.5 bg-gray-900/60 p-3 rounded-lg border border-gray-700">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs text-yellow-400 uppercase font-bold tracking-wide flex items-center">
+                            <i class="fas fa-tags mr-1.5"></i> Géneros / Categorías (uno o varios):
+                        </label>
+                    </div>
+                    <input type="text" id="detail-genre-input" class="w-full bg-gray-700 text-white border border-gray-600 p-2 rounded-lg text-sm focus:outline-none focus:border-yellow-500 mb-1.5" placeholder="Ej. Action, Fantasy, Shonen">
+                    <p class="text-[11px] text-gray-400 mb-1">Toca para agregar o quitar géneros con 1 clic:</p>
+                    <div id="detail-genre-quick-tags" class="flex flex-wrap gap-1.5"></div>
+                </div>
+
+                <!-- Estrellas INTERACTIVAS -->
+                <div class="mb-3">
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wide mb-2">Tu calificación — haz clic para cambiar</p>
+                    <div id="detail-stars" class="flex space-x-2 text-3xl cursor-pointer">
+                        <i class="fas fa-star" data-val="1"></i>
+                        <i class="fas fa-star" data-val="2"></i>
+                        <i class="fas fa-star" data-val="3"></i>
+                        <i class="fas fa-star" data-val="4"></i>
+                        <i class="fas fa-star" data-val="5"></i>
+                    </div>
+                </div>
+
+                <!-- Sinopsis -->
+                <div class="mb-3">
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wide mb-1">Sinopsis</p>
+                    <p id="detail-synopsis" class="text-sm text-gray-200 leading-relaxed"></p>
+                </div>
+
+                <!-- Reseña EDITABLE -->
+                <div class="mb-3">
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wide mb-1"><i class="fas fa-comment-dots text-yellow-500 mr-1"></i>Tu reseña</p>
+                    <textarea id="detail-review" class="w-full bg-gray-700 text-white border border-gray-600 p-2 rounded-lg focus:outline-none focus:border-yellow-500 text-sm h-20" placeholder="Escribe tu opinión..."></textarea>
+                </div>
+
+                <!-- Foro -->
+                <div class="bg-gray-900 rounded-lg p-3 mb-4 border border-gray-700">
+                    <p class="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1"><i class="fas fa-users mr-1"></i>Lo que dice el foro</p>
+                    <p id="detail-forum" class="text-xs text-gray-300 leading-relaxed"></p>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex justify-between items-center">
+                    <button id="delete-anime" class="bg-red-700 hover:bg-red-600 text-white text-sm font-bold px-4 py-2 rounded-lg flex items-center space-x-2">
+                        <i class="fas fa-trash-alt"></i><span>Eliminar</span>
+                    </button>
+                    <button id="save-detail" class="bg-green-700 hover:bg-green-600 text-white text-sm font-bold px-4 py-2 rounded-lg flex items-center space-x-2">
+                        <i class="fas fa-save"></i><span>Guardar cambios</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Conectar Celular / API -->
+    <div id="mobile-modal" class="fixed inset-0 bg-black bg-opacity-85 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-gray-800 rounded-xl max-w-md w-full shadow-2xl border border-blue-500 overflow-hidden">
+            <div class="p-5">
+                <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                    <h3 class="text-xl font-bold text-blue-400 flex items-center">
+                        <i class="fas fa-mobile-alt mr-2 text-yellow-500"></i> Usar en Celular / API
+                    </h3>
+                    <button id="close-mobile-modal" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+                </div>
+
+                <div class="space-y-4 text-sm">
+                    <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 text-center">
+                        <p class="text-xs text-green-400 uppercase font-bold mb-1 flex items-center justify-center">
+                            <i class="fas fa-globe mr-1.5"></i> Enlace público (Funciona con Datos Móviles / LTE y Wi-Fi):
+                        </p>
+                        <a id="mobile-url-link" href="#" target="_blank" class="text-base font-mono text-yellow-400 font-bold underline hover:text-yellow-300 break-all select-all block my-1"></a>
+                        <p class="text-[11px] text-gray-400 mt-1">¡No necesitas estar en el mismo Wi-Fi! Ábrelo directamente desde cualquier lugar.</p>
+                        <div class="mt-2 text-[10px] text-gray-500 border-t border-gray-800 pt-1">
+                            O por red Wi-Fi local: <span id="mobile-local-url" class="font-mono text-gray-400"></span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center p-3 bg-white rounded-lg">
+                        <img id="mobile-qr-img" src="" alt="Código QR" class="w-40 h-40 object-contain">
+                        <p class="text-xs text-gray-800 font-bold mt-1 text-center">Apunta la cámara de tu celular aquí para entrar</p>
+                    </div>
+
+                    <div class="bg-gray-900/80 p-3 rounded-lg border border-gray-700">
+                        <p class="text-xs text-yellow-400 font-bold uppercase mb-1 flex items-center">
+                            <i class="fas fa-code mr-1.5"></i> Endpoints de la API REST:
+                        </p>
+                        <p class="text-xs text-gray-300 font-mono bg-black/50 p-1.5 rounded mb-1">GET /api/animes <span class="text-gray-500 text-[10px]">(Devuelve lista en JSON)</span></p>
+                        <p class="text-xs text-gray-300 font-mono bg-black/50 p-1.5 rounded mb-1">POST /api/animes <span class="text-gray-500 text-[10px]">(Guarda/actualiza animes)</span></p>
+                        <p class="text-xs text-gray-300 font-mono bg-black/50 p-1.5 rounded">GET /api/ip <span class="text-gray-500 text-[10px]">(IP y puerto del servidor)</span></p>
+                    </div>
+
+                    <div class="bg-blue-900/30 p-2.5 rounded-lg border border-blue-700/50 text-xs text-blue-200">
+                        <p class="font-bold mb-0.5">📲 Instalar como App en celular:</p>
+                        <p>Abre el link en Chrome (Android) o Safari (iPhone), toca el menú y selecciona <strong>"Agregar a pantalla de inicio"</strong>. ¡Tendrá el ícono de los Toros Negros!</p>
+                    </div>
+                </div>
+
+                <div class="mt-5 flex justify-end">
+                    <button id="close-mobile-btn-2" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-bold text-white">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- app.js SIN módulos, cargado al final del body -->
+    <script src="app.js"></script>
+</body>
+</html>
